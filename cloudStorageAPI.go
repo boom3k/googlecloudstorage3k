@@ -22,7 +22,7 @@ type CloudStorageAPI struct {
 }
 
 type DownloadedFile struct {
-	Data         []byte
+	LocalData    []byte
 	ParentFolder string
 	FullFilePath string
 	Extension    string
@@ -31,14 +31,16 @@ type DownloadedFile struct {
 	IsDir        bool
 	Mode         fs.FileMode
 	Sys          interface{}
+	CreateTime   time.Time
 	ModTime      time.Time
 	Bucket       string
+	BucketBlob   BucketBlob
 }
 
 type BucketBlob struct {
-	Data   []byte
-	Name   string
-	Bucket string
+	Data     []byte
+	BlobName string
+	Bucket   string
 }
 
 func Builder(adminEmail string, serviceAccountKey []byte, ctx context.Context) *CloudStorageAPI {
@@ -48,7 +50,7 @@ func Builder(adminEmail string, serviceAccountKey []byte, ctx context.Context) *
 		panic(err)
 	}
 	newCloudStorageAPI := &CloudStorageAPI{Client: newClient, AdminEmail: adminEmail, Domain: strings.Split(adminEmail, "@")[1]}
-	log.Printf("New CloudStorageAPI instance created at: %v\n", &newCloudStorageAPI)
+	log.Printf("CloudstorageAPI initialized --> [%v]\n", &newCloudStorageAPI)
 	return newCloudStorageAPI
 }
 
@@ -98,7 +100,7 @@ func (receiver *CloudStorageAPI) GetBlobFromBucket(bucketName, objectName string
 		return nil, err
 	}
 
-	return &BucketBlob{Data: downloadedData, Name: objectName, Bucket: bucketName}, nil
+	return &BucketBlob{Data: downloadedData, BlobName: objectName, Bucket: bucketName}, nil
 
 }
 
@@ -129,10 +131,16 @@ func (receiver *CloudStorageAPI) DownloadToOS(bucketName, objectName, destinatio
 		return nil, err
 	}
 
+	localData, err := os.ReadFile(fullFilePath)
+	if err != nil {
+		log.Println(err.Error())
+		return nil, err
+	}
+
 	file, err := os.Open(fullFilePath)
 	if err != nil {
 		log.Println(err.Error())
-		panic(err)
+		return nil, err
 	}
 	defer file.Close()
 
@@ -143,13 +151,15 @@ func (receiver *CloudStorageAPI) DownloadToOS(bucketName, objectName, destinatio
 	}
 
 	return &DownloadedFile{
+		BucketBlob:   *bucketBlob,
 		Name:         fileStat.Name(),
 		Size:         fileStat.Size(),
 		IsDir:        fileStat.IsDir(),
 		Mode:         fileStat.Mode(),
 		Sys:          fileStat.Sys(),
 		ModTime:      fileStat.ModTime(),
-		Data:         bucketBlob.Data,
+		CreateTime:   time.Now(),
+		LocalData:    localData,
 		ParentFolder: destinationPath,
 		FullFilePath: fullFilePath,
 		Extension:    filepath.Ext(fileStat.Name()),
