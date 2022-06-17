@@ -19,7 +19,7 @@ type GoogleCloudStorage3k struct {
 	Domain     string
 }
 
-func BuildGoogleCloudStorage3k(adminEmail string, serviceAccountKey []byte, ctx context.Context) *GoogleCloudStorage3k {
+func Build(adminEmail string, serviceAccountKey []byte, ctx context.Context) *GoogleCloudStorage3k {
 	newClient, err := storage.NewClient(ctx, option.WithCredentialsJSON(serviceAccountKey))
 	if err != nil {
 		log.Println(err.Error())
