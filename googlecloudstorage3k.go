@@ -13,24 +13,24 @@ import (
 	"time"
 )
 
-type GoogleCloudStorage3k struct {
+type API struct {
 	Client     *storage.Client
 	AdminEmail string
 	Domain     string
 }
 
-func Build(adminEmail string, serviceAccountKey []byte, ctx context.Context) *GoogleCloudStorage3k {
+func BuildGoogleCloudStorage3k(adminEmail string, serviceAccountKey []byte, ctx context.Context) *API {
 	newClient, err := storage.NewClient(ctx, option.WithCredentialsJSON(serviceAccountKey))
 	if err != nil {
 		log.Println(err.Error())
 		panic(err)
 	}
-	newCloudStorage3k := &GoogleCloudStorage3k{Client: newClient, AdminEmail: adminEmail, Domain: strings.Split(adminEmail, "@")[1]}
+	newCloudStorage3k := &API{Client: newClient, AdminEmail: adminEmail, Domain: strings.Split(adminEmail, "@")[1]}
 	log.Printf("CloudStorage3k Ready @ --> [%v]\n", &newCloudStorage3k)
 	return newCloudStorage3k
 }
 
-func (receiver *GoogleCloudStorage3k) UploadData(bucketName, fileName string, data []byte, timeout int) (*BucketObject, error) {
+func (receiver *API) UploadData(bucketName, fileName string, data []byte, timeout int) (*BucketObject, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(timeout))
 	defer cancel()
 	bucketWriter := receiver.Client.Bucket(bucketName).Object(fileName).NewWriter(ctx)
@@ -45,11 +45,11 @@ func (receiver *GoogleCloudStorage3k) UploadData(bucketName, fileName string, da
 	return &BucketObject{Filename: fileName, BucketName: bucketName, Data: data}, nil
 }
 
-func (receiver *GoogleCloudStorage3k) UploadObject(object *BucketObject, timeout int) (*BucketObject, error) {
+func (receiver *API) UploadObject(object *BucketObject, timeout int) (*BucketObject, error) {
 	return receiver.UploadData(object.BucketName, object.Filename, object.Data, timeout)
 }
 
-func (receiver *GoogleCloudStorage3k) DownloadObject(bucketName, objectName string, timeout int) (*BucketObject, error) {
+func (receiver *API) DownloadObject(bucketName, objectName string, timeout int) (*BucketObject, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(timeout))
 	defer cancel()
 
@@ -87,7 +87,7 @@ func NewBucketObject(bucketName, fileName string, data []byte) *BucketObject {
 	}
 }
 
-func (receiver *BucketObject) Upload(gcs3k *GoogleCloudStorage3k, timeout int) {
+func (receiver *BucketObject) Upload(gcs3k *API, timeout int) {
 	receiver, err := gcs3k.UploadData(receiver.BucketName, receiver.Filename, receiver.Data, timeout)
 	if err != nil {
 		log.Println(err.Error())
