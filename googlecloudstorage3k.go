@@ -19,7 +19,7 @@ type API struct {
 	Domain     string
 }
 
-func BuildGoogleCloudStorage3k(adminEmail string, serviceAccountKey []byte, ctx context.Context) *API {
+func Build(adminEmail string, serviceAccountKey []byte, ctx context.Context) *API {
 	newClient, err := storage.NewClient(ctx, option.WithCredentialsJSON(serviceAccountKey))
 	if err != nil {
 		log.Println(err.Error())
